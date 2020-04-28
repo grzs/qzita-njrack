@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include <QProcess>
+#include <QStatusBar>
 
 namespace Ui {
 class Connector;
@@ -16,6 +17,7 @@ public:
     explicit Connector(QWidget *parent = nullptr);
     ~Connector();    
 
+    QStatusBar *statusbar;
     QProcess *cnx;
 
     void initCnx();

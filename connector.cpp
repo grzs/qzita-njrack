@@ -17,11 +17,11 @@ Connector::~Connector()
 
 void Connector::initCnx()
 {
-    QString program = "echo";
-    QStringList args = {"-n", ui->name->text()};
-    //QString program = "ping";
-    //QStringList args = {"-i","1.5","google.com"};
-    //args << WD;
+    //QString program = "echo";
+    //QStringList args = {"-n", ui->name->text()};
+    QString program = "ls";
+    QStringList args = {"-l"};
+    args << WD;
 
     cnx = new QProcess(this);
     QObject::connect(cnx, SIGNAL(readyRead()),
@@ -48,5 +48,11 @@ void Connector::on_sendButton_toggled(bool checked)
 
 void Connector::cnxOutputHandler()
 {
-    qDebug() << cnx->readAllStandardOutput();
+    //QByteArray message = cnx->readAllStandardOutput();
+    do {
+        QString message = ui->name->text() + ": ";
+        message.append(cnx->readLine());
+        qDebug() << message;
+        statusbar->showMessage(message);
+    } while (!cnx->atEnd());
 }

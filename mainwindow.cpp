@@ -19,6 +19,7 @@ MainWindow::~MainWindow()
 void MainWindow::add_connWidget()
 {
     Connector* conn = new Connector(this);
+    conn->statusbar = ui->statusbar;
     ui->connLayout->insertWidget(-1,conn);
 }
 
