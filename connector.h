@@ -18,14 +18,18 @@ public:
     ~Connector();    
 
     QStatusBar *statusbar;
-    QProcess *cnx;
+    QProcess *n2j;
+    QString n2j_program;
 
-    void initCnx();
-
+    QStringList initCnx();
+    void printOutput();
 private slots:
     void on_pushButton_released();
     void on_sendButton_toggled(bool checked);
-    void cnxOutputHandler();
+    void cnxStdOut();
+    void cnxStdErr();
+    void cnxErrorHandler(QProcess::ProcessError error);
+    void cnxFinished(int ecode,QProcess::ExitStatus estatus);
 
 private:
     Ui::Connector *ui;

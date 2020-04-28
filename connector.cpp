@@ -1,6 +1,7 @@
 #include "connector.h"
 #include "ui_connector.h"
 #include <QDebug>
+#include <QFileInfo>
 
 Connector::Connector(QWidget *parent) :
     QWidget(parent),
@@ -8,26 +9,36 @@ Connector::Connector(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    QString binpath = QCoreApplication::applicationDirPath();
+    n2j_program = binpath+"/zita-n2j";
 }
 
 Connector::~Connector()
 {
+//    if (n2j->state() == QProcess::Running) {
+//        n2j->kill();
+//    }
     delete ui;
 }
 
-void Connector::initCnx()
+QStringList Connector::initCnx()
 {
-    //QString program = "echo";
-    //QStringList args = {"-n", ui->name->text()};
-    QString program = "ls";
-    QStringList args = {"-l"};
-    args << WD;
+    n2j = new QProcess(this);
 
-    cnx = new QProcess(this);
-    QObject::connect(cnx, SIGNAL(readyRead()),
-                     this, SLOT(cnxOutputHandler()));
+    QObject::connect(n2j, SIGNAL(readyReadStandardOutput()),
+                     this, SLOT(cnxStdOut()));
+    QObject::connect(n2j, SIGNAL(readyReadStandardError()),
+                     this, SLOT(cnxStdErr()));
+    QObject::connect(n2j, SIGNAL(errorOccurred(QProcess::ProcessError)),
+                     this, SLOT(cnxErrorHandler(QProcess::ProcessError)));
+    QObject::connect(n2j, SIGNAL(finished(int,QProcess::ExitStatus)),
+                     this, SLOT(cnxFinished(int,QProcess::ExitStatus)));
 
-    cnx->start(program, args);
+    QStringList args;
+    args << "--jname" << "n2j-"+ui->name->text();
+    args << ui->listen_ip->text() << ui->port->text();
+
+    return args;
 }
 
 void Connector::on_pushButton_released()
@@ -37,22 +48,55 @@ void Connector::on_pushButton_released()
 
 void Connector::on_sendButton_toggled(bool checked)
 {
+    QString message = ui->name->text();
+    QString cmd = QFileInfo(n2j_program).fileName();
     if (checked) {
-        initCnx();
-        qDebug() << "on";
+        QStringList args = initCnx();
+        n2j->start(n2j_program, args);
+
+        cmd.append(" "+args.join(" "));
+        message.append(": ...starting "+ cmd);
     } else {
-        cnx->kill();
-        qDebug() << "off";
+        cmd.append(" "+n2j->arguments().join(" "));
+        n2j->kill();
+        message.append(": ...closing "+ cmd);
     }
+    qDebug() << message;
+    statusbar->showMessage(message,3000);
 }
 
-void Connector::cnxOutputHandler()
+void Connector::printOutput()
 {
-    //QByteArray message = cnx->readAllStandardOutput();
+    //qDebug() << n2j->readChannel();
     do {
         QString message = ui->name->text() + ": ";
-        message.append(cnx->readLine());
+        message.append(n2j->readLine());
         qDebug() << message;
         statusbar->showMessage(message);
-    } while (!cnx->atEnd());
+    } while (!n2j->atEnd());
+}
+
+void Connector::cnxStdOut()
+{
+    printOutput();
+}
+
+void Connector::cnxStdErr()
+{
+    n2j->setReadChannel(QProcess::StandardError);
+    printOutput();
+    n2j->setReadChannel(QProcess::StandardOutput);
+}
+
+void Connector::cnxErrorHandler(QProcess::ProcessError error)
+{
+    qDebug() << error << n2j->readAllStandardError();
+}
+
+void Connector::cnxFinished(int ecode, QProcess::ExitStatus estatus)
+{
+    if (ui->sendButton->isChecked()) {
+        ui->sendButton->toggle();
+    }
+    qDebug() << estatus << ecode;
 }
