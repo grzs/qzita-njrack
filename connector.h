@@ -18,10 +18,11 @@ public:
     ~Connector();    
 
     QStatusBar *statusbar;
-    QProcess *n2j;
-    QString n2j_program;
+    QProcess *n2j,*j2n;
+    QString binpath;
 
     QStringList initCnx();
+    QStringList init_j2n();
     void printOutput();
 private slots:
     void on_pushButton_released();

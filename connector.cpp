@@ -1,7 +1,7 @@
 #include "connector.h"
 #include "ui_connector.h"
 #include <QDebug>
-#include <QFileInfo>
+#include <QDir>
 
 Connector::Connector(QWidget *parent) :
     QWidget(parent),
@@ -9,8 +9,7 @@ Connector::Connector(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    QString binpath = QCoreApplication::applicationDirPath();
-    n2j_program = binpath+"/zita-n2j";
+    binpath = QCoreApplication::applicationDirPath();
 }
 
 Connector::~Connector()
@@ -35,6 +34,8 @@ QStringList Connector::initCnx()
                      this, SLOT(cnxFinished(int,QProcess::ExitStatus)));
 
     QStringList args;
+
+    // adding arguments
     args << "--jname" << "n2j-"+ui->name->text();
     args << ui->listen_ip->text() << ui->port->text();
 
@@ -48,18 +49,28 @@ void Connector::on_pushButton_released()
 
 void Connector::on_sendButton_toggled(bool checked)
 {
-    QString message = ui->name->text();
-    QString cmd = QFileInfo(n2j_program).fileName();
+    // if ...
+    QProcess *cnx;
+    QString bin = "zita-n2j";
+    // endif
+
+    QStringList cmd = {bin};
+    QString message = ui->name->text() + ": ";
+
     if (checked) {
         QStringList args = initCnx();
-        n2j->start(n2j_program, args);
+        cnx = n2j; // TODO
+        cmd.append(args);
+        message.append("...starting "+ cmd.join(" "));
 
-        cmd.append(" "+args.join(" "));
-        message.append(": ...starting "+ cmd);
+        QString fullpath = QDir(binpath).filePath(bin);
+        cnx->start(fullpath, args);
     } else {
-        cmd.append(" "+n2j->arguments().join(" "));
-        n2j->kill();
-        message.append(": ...closing "+ cmd);
+        cnx = n2j; // TODO
+        cmd.append(cnx->arguments());
+        message.append("...closing "+ cmd.join(" "));
+
+        cnx->kill();
     }
     qDebug() << message;
     statusbar->showMessage(message,3000);
