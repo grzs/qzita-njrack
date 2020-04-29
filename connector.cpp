@@ -87,32 +87,37 @@ void Connector::cnxControl(CnxDir cnxDir, bool checked)
     statusbar->showMessage(message,3000);
 }
 
-void Connector::printOutput()
+void Connector::printOutput(QProcess *proc)
 {
-    //qDebug() << j2n->readChannel();
     do {
         QString message = ui->name->text() + ": ";
-        message.append(j2n->readLine());
+        message.append(proc->readLine());
         qDebug() << message;
         statusbar->showMessage(message);
-    } while (!j2n->atEnd());
+    } while (!proc->atEnd());
 }
 
 void Connector::cnxStdOut()
 {
-    printOutput();
+    QProcess *proc = qobject_cast<QProcess *>(QObject::sender());
+
+    printOutput(proc);
 }
 
 void Connector::cnxStdErr()
 {
-    j2n->setReadChannel(QProcess::StandardError);
-    printOutput();
-    j2n->setReadChannel(QProcess::StandardOutput);
+    QProcess *proc = qobject_cast<QProcess *>(QObject::sender());
+
+    proc->setReadChannel(QProcess::StandardError);
+    printOutput(proc);
+    proc->setReadChannel(QProcess::StandardOutput);
 }
 
 void Connector::cnxErrorHandler(QProcess::ProcessError error)
 {
-    qDebug() << error << j2n->readAllStandardError();
+    QProcess *proc = qobject_cast<QProcess *>(QObject::sender());
+
+    qDebug() << error << proc->readAllStandardError();
 }
 
 void Connector::cnxFinished(int ecode, QProcess::ExitStatus estatus)

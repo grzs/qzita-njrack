@@ -30,7 +30,7 @@ public:
 
     Cnx initCnx(CnxDir cnxDir);
     QStringList init_j2n();
-    void printOutput();
+    void printOutput(QProcess *proc);
     void cnxControl(CnxDir cnxDir, bool checked);
 private slots:
     void on_xButton_released();
