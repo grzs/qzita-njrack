@@ -14,63 +14,74 @@ Connector::Connector(QWidget *parent) :
 
 Connector::~Connector()
 {
-//    if (n2j->state() == QProcess::Running) {
-//        n2j->kill();
-//    }
     delete ui;
 }
 
-QStringList Connector::initCnx()
+Connector::Cnx Connector::initCnx(CnxDir cnxDir)
 {
-    n2j = new QProcess(this);
+    Cnx cnx;
+    if (! ui->name->text().isEmpty()) {
+        cnx.args << "--jname" << ui->name->text();
+    }
 
-    QObject::connect(n2j, SIGNAL(readyReadStandardOutput()),
+    switch (cnxDir) {
+    case CnxDir::J2N:
+        j2n = new QProcess(this);
+        cnx.proc = j2n;
+        cnx.args << ui->remote_ip->text() << ui->port->text();
+        break;
+    case CnxDir::N2J:
+        n2j = new QProcess(this);
+        cnx.proc = n2j;
+        cnx.args << ui->listen_ip->text() << ui->port->text();
+        break;
+    }
+
+
+    QObject::connect(cnx.proc, SIGNAL(readyReadStandardOutput()),
                      this, SLOT(cnxStdOut()));
-    QObject::connect(n2j, SIGNAL(readyReadStandardError()),
+    QObject::connect(cnx.proc, SIGNAL(readyReadStandardError()),
                      this, SLOT(cnxStdErr()));
-    QObject::connect(n2j, SIGNAL(errorOccurred(QProcess::ProcessError)),
+    QObject::connect(cnx.proc, SIGNAL(errorOccurred(QProcess::ProcessError)),
                      this, SLOT(cnxErrorHandler(QProcess::ProcessError)));
-    QObject::connect(n2j, SIGNAL(finished(int,QProcess::ExitStatus)),
+    QObject::connect(cnx.proc, SIGNAL(finished(int,QProcess::ExitStatus)),
                      this, SLOT(cnxFinished(int,QProcess::ExitStatus)));
 
-    QStringList args;
-
-    // adding arguments
-    args << "--jname" << "n2j-"+ui->name->text();
-    args << ui->listen_ip->text() << ui->port->text();
-
-    return args;
+    return cnx;
 }
 
-void Connector::on_pushButton_released()
+void Connector::cnxControl(CnxDir cnxDir, bool checked)
 {
-    this->~Connector();
-}
+    Cnx cnx; // for process init
+    QProcess *proc; // to know what to kill
+    QString bin;
 
-void Connector::on_sendButton_toggled(bool checked)
-{
-    // if ...
-    QProcess *cnx;
-    QString bin = "zita-n2j";
-    // endif
+    switch (cnxDir) {
+    case CnxDir::J2N:
+        bin = "zita-j2n";
+        proc = j2n;
+        break;
+    case CnxDir::N2J:
+        proc = n2j;
+        bin = "zita-n2j";
+        break;
+    }
 
     QStringList cmd = {bin};
     QString message = ui->name->text() + ": ";
 
     if (checked) {
-        QStringList args = initCnx();
-        cnx = n2j; // TODO
-        cmd.append(args);
+        cnx = initCnx(cnxDir);
+        cmd.append(cnx.args);
         message.append("...starting "+ cmd.join(" "));
 
         QString fullpath = QDir(binpath).filePath(bin);
-        cnx->start(fullpath, args);
+        cnx.proc->start(fullpath, cnx.args);
     } else {
-        cnx = n2j; // TODO
-        cmd.append(cnx->arguments());
+        cmd.append(proc->arguments());
         message.append("...closing "+ cmd.join(" "));
 
-        cnx->kill();
+        proc->kill();
     }
     qDebug() << message;
     statusbar->showMessage(message,3000);
@@ -78,13 +89,13 @@ void Connector::on_sendButton_toggled(bool checked)
 
 void Connector::printOutput()
 {
-    //qDebug() << n2j->readChannel();
+    //qDebug() << j2n->readChannel();
     do {
         QString message = ui->name->text() + ": ";
-        message.append(n2j->readLine());
+        message.append(j2n->readLine());
         qDebug() << message;
         statusbar->showMessage(message);
-    } while (!n2j->atEnd());
+    } while (!j2n->atEnd());
 }
 
 void Connector::cnxStdOut()
@@ -94,20 +105,44 @@ void Connector::cnxStdOut()
 
 void Connector::cnxStdErr()
 {
-    n2j->setReadChannel(QProcess::StandardError);
+    j2n->setReadChannel(QProcess::StandardError);
     printOutput();
-    n2j->setReadChannel(QProcess::StandardOutput);
+    j2n->setReadChannel(QProcess::StandardOutput);
 }
 
 void Connector::cnxErrorHandler(QProcess::ProcessError error)
 {
-    qDebug() << error << n2j->readAllStandardError();
+    qDebug() << error << j2n->readAllStandardError();
 }
 
 void Connector::cnxFinished(int ecode, QProcess::ExitStatus estatus)
 {
-    if (ui->sendButton->isChecked()) {
-        ui->sendButton->toggle();
+    QProcess *proc = qobject_cast<QProcess *>(QObject::sender());
+    QPushButton *button = nullptr;
+    QString dir = proc->program().right(3);
+    if (dir == "j2n") {
+        button = ui->sendButton;
+    } else if (dir == "n2j") {
+        button = ui->receiveButton;
+    }
+
+    if (button->isChecked()) {
+        button->toggle();
     }
     qDebug() << estatus << ecode;
+}
+
+void Connector::on_xButton_released()
+{
+    this->~Connector();
+}
+
+void Connector::on_sendButton_toggled(bool checked)
+{
+    cnxControl(CnxDir::J2N,checked);
+}
+
+void Connector::on_receiveButton_toggled(bool checked)
+{
+    cnxControl(CnxDir::N2J,checked);
 }

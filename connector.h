@@ -15,22 +15,32 @@ class Connector : public QWidget
 
 public:
     explicit Connector(QWidget *parent = nullptr);
-    ~Connector();    
+    ~Connector();
+
+    enum CnxDir { J2N, N2J };
+    struct Cnx
+    {
+        QProcess *proc;
+        QStringList args;
+    };
 
     QStatusBar *statusbar;
     QProcess *n2j,*j2n;
     QString binpath;
 
-    QStringList initCnx();
+    Cnx initCnx(CnxDir cnxDir);
     QStringList init_j2n();
     void printOutput();
+    void cnxControl(CnxDir cnxDir, bool checked);
 private slots:
-    void on_pushButton_released();
+    void on_xButton_released();
     void on_sendButton_toggled(bool checked);
     void cnxStdOut();
     void cnxStdErr();
     void cnxErrorHandler(QProcess::ProcessError error);
     void cnxFinished(int ecode,QProcess::ExitStatus estatus);
+
+    void on_receiveButton_toggled(bool checked);
 
 private:
     Ui::Connector *ui;

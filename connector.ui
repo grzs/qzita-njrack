@@ -48,7 +48,7 @@
        <number>8</number>
       </property>
       <item>
-       <widget class="QPushButton" name="pushButton">
+       <widget class="QPushButton" name="xButton">
         <property name="maximumSize">
          <size>
           <width>20</width>
