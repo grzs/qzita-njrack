@@ -33,10 +33,6 @@ FORMS += \
 TRANSLATIONS += \
     qzita-njrack_hu_HU.ts
 
-DISTFILES += \
-    bin/zita-j2n \
-    bin/zita-n2j
-
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
