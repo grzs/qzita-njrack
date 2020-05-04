@@ -18,11 +18,10 @@ public:
     ~Connector();
 
     enum CnxDir { J2N, N2J };
-    struct Cnx
-    {
+    typedef struct Cnx {
         QProcess *proc;
         QStringList args;
-    };
+    } Cnx;
 
     QStatusBar *statusbar;
     QProcess *n2j,*j2n;
